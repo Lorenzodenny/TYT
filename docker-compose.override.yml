@@ -1,0 +1,7 @@
+services:
+  tyt:
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      - ASPNETCORE_HTTP_PORTS=5085
+    ports:
+      - "5085:5085"

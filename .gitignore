@@ -1,0 +1,16 @@
+# Visual Studio
+.vs/
+*.user
+*.suo
+
+# Build
+bin/
+obj/
+
+# Docker
+sql_data/
+
+# Altri file temporanei
+*.vsidx
+*.dbmdl
+*.log
