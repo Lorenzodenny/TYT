@@ -1,8 +1,12 @@
 using Carter;
 using FluentValidation;
+using Hangfire;
+using Hangfire.SqlServer;
 using Microsoft.AspNetCore.Authentication.Cookies;
+using Microsoft.AspNetCore.Diagnostics;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Identity.UI.Services;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using TYT.Data;
 using TYT.Helpers;
@@ -24,8 +28,8 @@ builder.Services.AddDbContext<TYTDbContext>(opt =>
 builder.Services
     .AddIdentity<TYTUser, IdentityRole>(opt =>
     {
-        // Impostazioni minime per ora; puoi personalizzare dopo
         opt.User.RequireUniqueEmail = true;
+        opt.SignIn.RequireConfirmedEmail = true; // Email confermata per loggare
     })
     .AddEntityFrameworkStores<TYTDbContext>()
     .AddDefaultTokenProviders();
@@ -84,6 +88,19 @@ builder.Services.AddSingleton<IEmailTemplateService, EmailTemplateService>();
 builder.Services.AddTransient<IEmailSender, SmtpEmailSender>();
 builder.Services.AddScoped<EmailSenderHelper>();
 
+// Hangfire
+builder.Services.AddHangfire(cfg => cfg
+    .SetDataCompatibilityLevel(CompatibilityLevel.Version_180)
+    .UseSimpleAssemblyNameTypeSerializer()
+    .UseRecommendedSerializerSettings()
+    .UseSqlServerStorage(cs, new SqlServerStorageOptions
+    {
+        PrepareSchemaIfNecessary = true
+    })
+);
+
+builder.Services.AddHangfireServer();
+
 // HTTPContext
 builder.Services.AddHttpContextAccessor();
 
@@ -104,11 +121,38 @@ builder.Services.AddCors(options =>
 
 var app = builder.Build();
 
+// Exception centralizzata
+app.UseExceptionHandler(errApp =>
+{
+    errApp.Run(async ctx =>
+    {
+        var ex = ctx.Features.Get<IExceptionHandlerFeature>()?.Error;
+        var logger = ctx.RequestServices.GetRequiredService<ILogger<Program>>();
+        logger.LogError(ex, "Unhandled exception");
+
+        ctx.Response.ContentType = "application/problem+json";
+        ctx.Response.StatusCode = StatusCodes.Status500InternalServerError;
+
+        var problem = new ProblemDetails
+        {
+            Title = "Errore imprevisto",
+            Status = StatusCodes.Status500InternalServerError,
+            Detail = "Qualcosa è andato storto. Riprova più tardi."
+        };
+
+        await ctx.Response.WriteAsJsonAsync(problem);
+    });
+});
+
+
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
     app.UseSwaggerUI();
+
+    // Dashboard Hangfire 
+    app.UseHangfireDashboard("/hangfire");
 
     // Helper per le migrazioni all'avvio dell'app
     app.UseMigration();

@@ -1,13 +1,79 @@
 ﻿<!DOCTYPE html>
-<html>
+<html lang="it">
 <head>
     <meta charset="utf-8">
     <title>Conferma email</title>
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <style>
+        /* Alcuni client supportano poco il CSS nel <style>, ma lo manteniamo per piccoli affinamenti */
+        @media (max-width:600px) {
+            .container {
+                width: 100% !important;
+                padding: 20px !important;
+            }
+
+            .btn {
+                display: block !important;
+                width: 100% !important;
+                text-align: center !important;
+            }
+        }
+    </style>
 </head>
-<body style="font-family:Arial,sans-serif">
-    <h2>Ciao {Nome},</h2>
-    <p>Conferma il tuo indirizzo email cliccando il pulsante qui sotto.</p>
-    <p><a href="{ConfirmationLink}" style="padding:10px 16px;background:#2563eb;color:#fff;text-decoration:none;border-radius:6px">Conferma email</a></p>
-    <p>Se non hai richiesto tu, ignora questa email.</p>
+<body style="margin:0;padding:0;background:#f6f7fb;">
+    <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%">
+        <tr>
+            <td align="center" style="padding:24px 12px;">
+                <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="600" class="container" style="width:600px;max-width:600px;background:#ffffff;border-radius:12px;overflow:hidden;box-shadow:0 6px 18px rgba(0,0,0,0.07);">
+                    <!-- Header -->
+                    <tr>
+                        <td style="background:#111827;color:#ffffff;padding:20px 24px;font:600 18px/1.2 Arial,Helvetica,sans-serif;">
+                            Take Your Time
+                        </td>
+                    </tr>
+
+                    <!-- Body -->
+                    <tr>
+                        <td style="padding:28px 28px 8px 28px;font:16px/1.6 Arial,Helvetica,sans-serif;color:#111827;">
+                            <h2 style="margin:0 0 12px 0;font:700 22px/1.3 Arial,Helvetica,sans-serif;color:#111827;">Ciao {Nome},</h2>
+                            <p style="margin:0 0 12px 0;">
+                                Conferma il tuo indirizzo email cliccando il pulsante qui sotto.
+                            </p>
+                        </td>
+                    </tr>
+
+                    <!-- Button -->
+                    <tr>
+                        <td style="padding:0 28px 8px 28px;">
+                            <a href="{ConfirmationLink}" class="btn"
+                               style="display:inline-block;background:#2563eb;color:#ffffff;text-decoration:none;
+                        padding:14px 22px;border-radius:10px;font:700 16px/1 Arial,Helvetica,sans-serif;">
+                                Conferma email
+                            </a>
+                        </td>
+                    </tr>
+
+                    <!-- Fallback link -->
+                    <tr>
+                        <td style="padding:12px 28px 24px 28px;font:13px/1.6 Arial,Helvetica,sans-serif;color:#6b7280;">
+                            Se il pulsante non dovesse funzionare, copia e incolla questo link nel browser:<br>
+                            <span style="word-break:break-all;color:#2563eb;">{ConfirmationLink}</span>
+                        </td>
+                    </tr>
+
+                    <!-- Footer -->
+                    <tr>
+                        <td style="background:#f9fafb;color:#6b7280;padding:16px 24px;font:12px/1.6 Arial,Helvetica,sans-serif;border-top:1px solid #eef2f7;">
+                            Se non hai richiesto tu questa email, puoi ignorarla in sicurezza.
+                        </td>
+                    </tr>
+                </table>
+
+                <div style="padding:14px 0 0 0;color:#9ca3af;font:12px/1.6 Arial,Helvetica,sans-serif;">
+                    © {new Date().getFullYear()} Take Your Time
+                </div>
+            </td>
+        </tr>
+    </table>
 </body>
 </html>

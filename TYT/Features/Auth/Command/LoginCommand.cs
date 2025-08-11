@@ -40,6 +40,9 @@ public sealed class LoginHandler(
         var result = await signInManager.PasswordSignInAsync(
             user, req.Password, req.RememberMe, lockoutOnFailure: true);
 
+        if (result.IsNotAllowed)            
+            return new(false, "Email non confermata. Controlla la tua casella di posta.");
+
         if (!result.Succeeded)
             return new(false, result.IsLockedOut ? "Account bloccato temporaneamente." : "Credenziali non valide.");
 

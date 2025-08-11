@@ -19,21 +19,24 @@ public sealed class EmailSenderHelper
         _tpl = tpl ?? throw new ArgumentNullException(nameof(tpl));
     }
 
-    public async Task SendEmailConfirmationAsync(TYTUser user, string confirmationToken)
+    public async Task SendEmailConfirmationAsync(
+     string userId,
+     string userEmail,
+     string? nome,
+     string confirmationToken,
+     string baseUrl)
     {
-        var req = _http.HttpContext?.Request;
-        if (req is null) throw new InvalidOperationException("HttpContext non disponibile.");
-
-        var link = $"{req.Scheme}://{req.Host}/api/auth/confirm-email?userId={Uri.EscapeDataString(user.Id)}&token={Uri.EscapeDataString(confirmationToken)}";
+        var link = $"{baseUrl}/api/auth/confirm-email?userId={Uri.EscapeDataString(userId)}&token={Uri.EscapeDataString(confirmationToken)}";
 
         var content = _tpl.Generate(TemplateType.EmailConfirm, new()
-        {
-            { FieldType.Nome, user.Nome ?? user.Email ?? "Utente" },
-            { FieldType.ConfirmationLink, link }
-        });
+    {
+        { FieldType.Nome, nome ?? userEmail ?? "Utente" },
+        { FieldType.ConfirmationLink, link }
+    });
 
-        await _sender.SendEmailAsync(user.Email!, content.Subject, content.Html);
+        await _sender.SendEmailAsync(userEmail, content.Subject, content.Html);
     }
+
 
     public async Task SendOtpAsync(TYTUser user, string otp)
     {
