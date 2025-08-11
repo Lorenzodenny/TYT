@@ -1,16 +1,29 @@
 ﻿using Carter;
 using FluentValidation;
 using MediatR;
-using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Identity;
+using System.Security.Claims;
 using TYT.Dispatcher.Interface;
 using TYT.Models;
+using TYT.Services.Auth;
+using TYT.Services.Security;
+using System.IdentityModel.Tokens.Jwt;
+
 
 namespace TYT.Features.Auth.Command;
 
 // Command (Request)
-public sealed record LoginCommand(string Email, string Password, bool RememberMe) : ICommand<LoginResponse>;
+public sealed record LoginCommand(string Email, string Password) : ICommand<LoginResponse>;
+
+public sealed record LoginResponse(
+    bool Success,
+    string Message,
+    string? AccessToken,
+    DateTime? AccessTokenExpiresUtc,
+    string? RefreshToken,
+    DateTime? RefreshTokenExpiresUtc
+);
 
 // Validator
 public sealed class LoginValidator : AbstractValidator<LoginCommand>
@@ -22,32 +35,32 @@ public sealed class LoginValidator : AbstractValidator<LoginCommand>
     }
 }
 
-// Response
-public sealed record LoginResponse(bool Success, string? Message);
-
 // Handler
 public sealed class LoginHandler(
-    SignInManager<TYTUser> signInManager,
-    UserManager<TYTUser> userManager
+    UserManager<TYTUser> userManager,
+    IJwtTokenService tokenService,
+     IJwtClaimsFactory claimsFactory
 ) : ICommandHandler<LoginCommand, LoginResponse>
 {
     public async Task<LoginResponse> Handle(LoginCommand req, CancellationToken ct)
     {
         var user = await userManager.FindByEmailAsync(req.Email);
-        if (user is null || user.IsDeleted)
-            return new(false, "Credenziali non valide.");
+        if (user is null)
+            return new(false, "Email o password non validi", null, null, null, null);
 
-        var result = await signInManager.PasswordSignInAsync(
-            user, req.Password, req.RememberMe, lockoutOnFailure: true);
+        if (!user.EmailConfirmed)
+            return new(false, "Email non confermata", null, null, null, null);
 
-        if (result.IsNotAllowed)            
-            return new(false, "Email non confermata. Controlla la tua casella di posta.");
+        if (!await userManager.CheckPasswordAsync(user, req.Password))
+            return new(false, "Email o password non validi", null, null, null, null);
 
-        if (!result.Succeeded)
-            return new(false, result.IsLockedOut ? "Account bloccato temporaneamente." : "Credenziali non valide.");
+        // Claims 
+        var claims = await claimsFactory.BuildAsync(user, includeJti: true, ct);
 
-        // Cookie creato qui (con tutti i claim dell'utente, incluso "TYTRole").
-        return new(true, "Login effettuato.");
+        var (access, accessExp) = await tokenService.CreateAccessTokenAsync(user, claims, ct);
+        var (refresh, refreshExp) = await tokenService.CreateAndStoreRefreshTokenAsync(user.Id, ct);
+
+        return new(true, "Login ok", access, accessExp, refresh, refreshExp);
     }
 }
 

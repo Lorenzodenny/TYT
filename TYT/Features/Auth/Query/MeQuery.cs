@@ -21,7 +21,6 @@ public sealed record MeResponse(
 
 public sealed class MeHandler(
     UserManager<TYTUser> userManager,
-    SignInManager<TYTUser> signInManager,
     IHttpContextAccessor accessor
 ) : IQueryHandler<MeQuery, MeResponse>
 {
@@ -33,24 +32,20 @@ public sealed class MeHandler(
         if (!(principal?.Identity?.IsAuthenticated ?? false))
             throw new UnauthorizedAccessException();
 
-        // Rinnova/estende il cookie (keep-alive)
-        var user = await userManager.GetUserAsync(principal);
-        if (user is not null)
-            await signInManager.RefreshSignInAsync(user);
-
-        // Leggi i claim dal principal (include "TYTRole")
         var userId = principal.FindFirstValue(ClaimTypes.NameIdentifier);
-        var name = principal.Identity?.Name;
         var email = principal.FindFirstValue(ClaimTypes.Email);
+        var name = principal.Identity?.Name;
 
-        const string roleType = nameof(TYT.Shared.Enums.TYTRole);
+        var user = await userManager.FindByIdAsync(userId!);
+
+        // Recupera ruoli come prima (claims TYTRole già assegnati lato creazione utente)
         var roles = principal.Claims
-            .Where(c => c.Type == roleType)
+            .Where(c => c.Type.EndsWith("TYTRole") || c.Type.Contains("TYTRole"))
             .Select(c => c.Value)
             .Distinct()
             .ToArray();
 
-        return new MeResponse(true, userId, name, email, roles);
+        return new(true, user!.Id, email, name, roles);
     }
 }
 
